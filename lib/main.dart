@@ -38,7 +38,7 @@ class AuthWrapper extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
         if (snapshot.hasData) {
-          return LoggedInPage();
+          return const MainPage();
         } else {
           return const LoginPage();
         }
@@ -197,8 +197,56 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 }
 
-class LoggedInPage extends StatelessWidget {
-  LoggedInPage({Key? key}) : super(key: key);
+class MainPage extends StatefulWidget {
+  const MainPage({Key? key}) : super(key: key);
+
+  @override
+  State<MainPage> createState() => _MainPageState();
+}
+
+class _MainPageState extends State<MainPage> {
+  int _selectedIndex = 0;
+
+  final List<Widget> _pages = [
+    MessageBoardsPage(),
+    const ProfilePage(),
+    const SettingsPage(),
+  ];
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _pages[_selectedIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.message),
+            label: 'Message Boards',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Settings',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class MessageBoardsPage extends StatelessWidget {
+  MessageBoardsPage({Key? key}) : super(key: key);
 
   final List<String> boardNames = ['Sports', 'Tech', 'Travel'];
   final List<String> boardIcons = [
@@ -210,17 +258,7 @@ class LoggedInPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Message Boards'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-            },
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Message Boards')),
       body: GridView.builder(
         padding: const EdgeInsets.all(16.0),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -230,31 +268,22 @@ class LoggedInPage extends StatelessWidget {
         ),
         itemCount: boardNames.length,
         itemBuilder: (context, index) {
-          return GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => ChatPage(boardName: boardNames[index])),
-              );
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                image: DecorationImage(
-                  image: AssetImage(boardIcons[index]),
-                  fit: BoxFit.cover,
-                ),
+          return Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              image: DecorationImage(
+                image: AssetImage(boardIcons[index]),
+                fit: BoxFit.cover,
               ),
-              child: Center(
-                child: Text(
-                  boardNames[index],
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    backgroundColor: Colors.black54,
-                  ),
+            ),
+            child: Center(
+              child: Text(
+                boardNames[index],
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  backgroundColor: Colors.black54,
                 ),
               ),
             ),
@@ -265,16 +294,35 @@ class LoggedInPage extends StatelessWidget {
   }
 }
 
-class ChatPage extends StatelessWidget {
-  final String boardName;
-
-  const ChatPage({Key? key, required this.boardName}) : super(key: key);
+class ProfilePage extends StatelessWidget {
+  const ProfilePage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(boardName)),
-      body: const Center(child: Text('Chat page coming soon...')),
+      appBar: AppBar(title: const Text('Profile')),
+      body: const Center(
+        child: Text('Profile Page'),
+      ),
+    );
+  }
+}
+
+class SettingsPage extends StatelessWidget {
+  const SettingsPage({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Settings')),
+      body: Center(
+        child: ElevatedButton(
+          onPressed: () async {
+            await FirebaseAuth.instance.signOut();
+          },
+          child: const Text('Logout'),
+        ),
+      ),
     );
   }
 }
