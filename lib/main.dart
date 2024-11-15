@@ -254,6 +254,11 @@ class MessageBoardsPage extends StatelessWidget {
     'assets/tech.png',
     'assets/travel.png',
   ];
+  final List<List<String>> defaultMessages = [
+    ['Great match!', 'Who will win the finals?'],
+    ['New gadget release', 'Future of AI?'],
+    ['Best places to visit?', 'Travel tips needed!']
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -268,22 +273,35 @@ class MessageBoardsPage extends StatelessWidget {
         ),
         itemCount: boardNames.length,
         itemBuilder: (context, index) {
-          return Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              image: DecorationImage(
-                image: AssetImage(boardIcons[index]),
-                fit: BoxFit.cover,
+          return GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ChatPage(
+                    boardName: boardNames[index],
+                    messages: defaultMessages[index],
+                  ),
+                ),
+              );
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                image: DecorationImage(
+                  image: AssetImage(boardIcons[index]),
+                  fit: BoxFit.cover,
+                ),
               ),
-            ),
-            child: Center(
-              child: Text(
-                boardNames[index],
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  backgroundColor: Colors.black54,
+              child: Center(
+                child: Text(
+                  boardNames[index],
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    backgroundColor: Colors.black54,
+                  ),
                 ),
               ),
             ),
@@ -294,15 +312,126 @@ class MessageBoardsPage extends StatelessWidget {
   }
 }
 
-class ProfilePage extends StatelessWidget {
+class ChatPage extends StatelessWidget {
+  final String boardName;
+  final List<String> messages;
+
+  const ChatPage({Key? key, required this.boardName, required this.messages})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(boardName)),
+      body: ListView.builder(
+        itemCount: messages.length,
+        itemBuilder: (context, index) {
+          return ListTile(
+            title: Text(messages[index]),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class ProfilePage extends StatefulWidget {
   const ProfilePage({Key? key}) : super(key: key);
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  final User? user = FirebaseAuth.instance.currentUser;
+  final TextEditingController _firstNameController = TextEditingController();
+  final TextEditingController _lastNameController = TextEditingController();
+  String email = '';
+  String registrationDate = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserDetails();
+  }
+
+  Future<void> _fetchUserDetails() async {
+    if (user != null) {
+      final userData = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user!.uid)
+          .get();
+      if (userData.exists) {
+        final data = userData.data();
+        if (data != null) {
+          setState(() {
+            _firstNameController.text = data['firstName'] ?? '';
+            _lastNameController.text = data['lastName'] ?? '';
+            email = data['email'] ?? '';
+            registrationDate =
+                (data['registrationDateTime'] as Timestamp).toDate().toString();
+          });
+        }
+      }
+    }
+  }
+
+  Future<void> _updateUserDetails() async {
+    if (user != null) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user!.uid)
+            .update({
+          'firstName': _firstNameController.text.trim(),
+          'lastName': _lastNameController.text.trim(),
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile updated successfully!')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error updating profile: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
-      body: const Center(
-        child: Text('Profile Page'),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            TextField(
+              controller: _firstNameController,
+              decoration: const InputDecoration(labelText: 'First Name'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _lastNameController,
+              decoration: const InputDecoration(labelText: 'Last Name'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              enabled: false,
+              decoration: InputDecoration(labelText: 'Email', hintText: email),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              enabled: false,
+              decoration: InputDecoration(
+                  labelText: 'Registration Date', hintText: registrationDate),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _updateUserDetails,
+              child: const Text('Update Profile'),
+            ),
+          ],
+        ),
       ),
     );
   }
